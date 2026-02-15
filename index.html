@@ -48,13 +48,10 @@
     <h1>KNMI Air Pressure (De Bilt)</h1>
     
     <div class="controls">
-        <button id="loadBtn" onclick="loadData()">Load Data</button>
         <button id="lastDayBtn" onclick="filterRange(1)" disabled>Last Day</button>
         <button id="lastWeekBtn" onclick="filterRange(7)" disabled>Last Week</button>
         <button id="lastTwoWeeksBtn" onclick="filterRange(14)" disabled>Last 2 Weeks</button>
         <button id="lastMonthBtn" onclick="filterRange(30)" disabled>Last Month</button>
-        <button id="resetZoomBtn" onclick="resetZoom()" disabled>Reset Zoom</button>
-        <button id="showAllBtn" onclick="showAllData()" disabled>Show All</button>
         <div id="status"></div>
         <div id="info"></div>
     </div>
@@ -72,11 +69,9 @@
         window.addEventListener('DOMContentLoaded', loadData);
 
         async function loadData() {
-            const btn = document.getElementById('loadBtn');
             const status = document.getElementById('status');
             const info = document.getElementById('info');
             
-            btn.disabled = true;
             status.textContent = 'Downloading ZIP file...';
             
             const url = 'https://cdn.knmi.nl/knmi/map/page/klimatologie/gegevens/uurgegevens/uurgeg_260_2021-2030.zip';
@@ -120,19 +115,15 @@
                 info.textContent = `Date range: ${allLabels[0]} to ${allLabels[allLabels.length - 1]}`;
                 
                 filterRange(14);
-                document.getElementById('resetZoomBtn').disabled = false;
                 document.getElementById('lastDayBtn').disabled = false;
                 document.getElementById('lastWeekBtn').disabled = false;
                 document.getElementById('lastTwoWeeksBtn').disabled = false;
                 document.getElementById('lastMonthBtn').disabled = false;
-                document.getElementById('showAllBtn').disabled = false;
                 
             } catch (error) {
                 status.textContent = 'Error: ' + error.message;
                 console.error(error);
             }
-            
-            btn.disabled = false;
         }
 
         function parseData(text) {
@@ -251,12 +242,6 @@
             });
         }
 
-        function resetZoom() {
-            if (chart) {
-                chart.resetZoom();
-            }
-        }
-
         function filterRange(days) {
             if (allDates.length === 0) return;
             
@@ -275,24 +260,6 @@
             
             createChart(filteredLabels, filteredData);
             document.getElementById('info').textContent = `Showing last ${days} day(s): ${filteredLabels[0]} to ${filteredLabels[filteredLabels.length - 1]}`;
-        }
-
-        function showAllData() {
-                const lastDate = allDates[allDates.length - 1];
-                const cutoffDate = new Date(lastDate.getTime() - 14 * 24 * 60 * 60 * 1000);
-                
-                const filteredLabels = [];
-                const filteredData = [];
-                
-                for (let i = 0; i < allDates.length; i++) {
-                    if (allDates[i] >= cutoffDate) {
-                        filteredLabels.push(allLabels[i]);
-                        filteredData.push(allData[i]);
-                    }
-                }
-                
-                createChart(filteredLabels, filteredData);
-                document.getElementById('info').textContent = `Showing last 2 weeks: ${filteredLabels[0]} to ${filteredLabels[filteredLabels.length - 1]}`;
         }
     </script>
 </body>
