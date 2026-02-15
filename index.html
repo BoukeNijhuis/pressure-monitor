@@ -45,7 +45,7 @@
     </style>
 </head>
 <body>
-    <h1>KNMI Air Pressure (2021-2030)</h1>
+    <h1>KNMI Air Pressure (De Bilt)</h1>
     
     <div class="controls">
         <button id="loadBtn" onclick="loadData()">Load Data</button>
@@ -216,9 +216,15 @@
                                 mode: 'x'
                             },
                             zoom: {
-                                wheel: { enabled: true },
-                                pinch: { enabled: true },
-                                mode: 'x'
+                                wheel: { enabled: false },
+                                pinch: { enabled: false },
+                                mode: 'x',
+                                onZoom: (chart) => {
+                                    const xScale = chart.scales.x;
+                                    const max = xScale.max;
+                                    xScale.options.min = xScale.min;
+                                    xScale.options.max = max;
+                                }
                             }
                         },
                         tooltip: {
