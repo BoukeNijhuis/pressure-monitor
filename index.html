@@ -283,7 +283,7 @@
                 type: 'line',
                 data: {
                     datasets: [{
-                        label: t('pressure'),
+                        label: '',
                         data: chartData,
                         borderColor: 'rgb(37, 99, 235)',
                         backgroundColor: 'rgba(37, 99, 235, 0.1)',
@@ -295,11 +295,15 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    locale: currentLocale === 'nl' ? 'nl-NL' : 'en-US',
                     interaction: {
                         mode: 'index',
                         intersect: false
                     },
                     plugins: {
+                        legend: {
+                            display: false
+                        },
                         zoom: {
                             pan: {
                                 enabled: true,
@@ -319,7 +323,18 @@
                         },
                         tooltip: {
                             callbacks: {
-                                title: (items) => items[0]?.label || ''
+                                title: (items) => {
+                                    if (!items.length) return '';
+                                    const date = new Date(items[0].parsed.x);
+                                    const dayNames = currentLocale === 'nl' 
+                                        ? ['Zo', 'Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za']
+                                        : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                                    const monthNames = currentLocale === 'nl'
+                                        ? ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec']
+                                        : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                    const hour = date.getHours().toString().padStart(2, '0') + ':00';
+                                    return `${dayNames[date.getDay()]} ${date.getDate()} ${monthNames[date.getMonth()]} ${hour}`;
+                                }
                             }
                         }
                     },
@@ -340,7 +355,7 @@
                                     const monthNames = currentLocale === 'nl'
                                         ? ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec']
                                         : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                                    return dayNames[date.getDay()] + ' ' + date.getDate() + ' ' + monthNames[date.getMonth()];
+                                    return `${dayNames[date.getDay()]} ${date.getDate()} ${monthNames[date.getMonth()]}`;
                                 }
                             }
                         },
