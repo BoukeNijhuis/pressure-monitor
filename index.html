@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KNMI Air Pressure Chart</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <style>
@@ -35,7 +36,7 @@
         button:hover { background: #0052a3; }
         button:disabled { background: #ccc; cursor: not-allowed; }
         .locale-buttons { float: right; }
-        .locale-buttons button { padding: 2px 8px; font-size: 24px; background: transparent; color: #333; border: 1px solid #ccc; border-radius: 4px; }
+        .locale-buttons button { padding: 2px 8px; font-size: 20px; background: transparent; color: #333; border: 1px solid #ccc; border-radius: 4px; }
         .locale-buttons button.active { background: transparent; border-color: #0066cc; }
         #status { margin: 10px 0; color: #666; }
         .chart-container {
@@ -59,8 +60,6 @@
         <button id="lastWeekBtn" onclick="filterRange(7)" disabled>Laatste week</button>
         <button id="lastTwoWeeksBtn" onclick="filterRange(14)" disabled>Laatste 2 weken</button>
         <button id="lastMonthBtn" onclick="filterRange(30)" disabled>Laatste maand</button>
-        <div id="status"></div>
-        <div id="info"></div>
     </div>
 
     <div class="chart-container">
@@ -73,8 +72,6 @@
         let allData = [];
         let allDates = [];
         let currentLocale = 'nl';
-        let dateRangeInfo = '';
-        let loadedInfo = '';
 
         const translations = {
             en: {
@@ -140,10 +137,6 @@
             
             if (allDates.length > 0) {
                 regenerateLabels();
-                dateRangeInfo = `${t('dateRange')} ${allLabels[0]} ${t('to')} ${allLabels[allLabels.length - 1]}`;
-                loadedInfo = `${t('loaded')} ${allData.length} ${t('dataPoints')}`;
-                document.getElementById('info').textContent = dateRangeInfo;
-                document.getElementById('status').textContent = loadedInfo;
                 filterRange(14);
             }
         }
@@ -175,29 +168,21 @@
         window.addEventListener('DOMContentLoaded', loadData);
 
         async function loadData() {
-            const status = document.getElementById('status');
-            const info = document.getElementById('info');
-            
-            status.textContent = t('downloading');
-            
             const url = 'https://cdn.knmi.nl/knmi/map/page/klimatologie/gegevens/uurgegevens/uurgeg_260_2021-2030.zip';
             
             try {
                 let response = await fetch(url);
                 
                 if (!response.ok) {
-                    status.textContent = t('directFailed');
                     response = await fetch('https://corsproxy.io/?' + encodeURIComponent(url));
                 }
                 
                 if (!response.ok) throw new Error(t('downloadFailed'));
                 
-                status.textContent = t('extracting');
                 const arrayBuffer = await response.arrayBuffer();
                 const zip = await JSZip.loadAsync(arrayBuffer);
                 
                 const files = Object.keys(zip.files);
-                status.textContent = `${t('found')} ${files.length} ${t('files')} ${files.join(', ')}`;
                 
                 let dataText = '';
                 for (const filename of files) {
@@ -214,13 +199,7 @@
                     dataText = await file.async('string');
                 }
                 
-                status.textContent = t('parsing');
                 parseData(dataText);
-                
-                status.textContent = `${t('loaded')} ${allData.length} ${t('dataPoints')}`;
-                loadedInfo = `${t('loaded')} ${allData.length} ${t('dataPoints')}`;
-                dateRangeInfo = `${t('dateRange')} ${allLabels[0]} ${t('to')} ${allLabels[allLabels.length - 1]}`;
-                info.textContent = dateRangeInfo;
                 
                 filterRange(14);
                 document.getElementById('lastDayBtn').disabled = false;
@@ -229,7 +208,6 @@
                 document.getElementById('lastMonthBtn').disabled = false;
                 
             } catch (error) {
-                status.textContent = t('error') + ' ' + error.message;
                 console.error(error);
             }
         }
@@ -292,18 +270,19 @@
             }
         }
 
-        function createChart(labels, data) {
+        function createChart(dates, data) {
             const ctx = document.getElementById('pressureChart').getContext('2d');
             
             if (chart) chart.destroy();
             
+            const chartData = dates.map((date, i) => ({ x: date, y: data[i] }));
+            
             chart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: labels,
                     datasets: [{
                         label: t('pressure'),
-                        data: data,
+                        data: chartData,
                         borderColor: 'rgb(37, 99, 235)',
                         backgroundColor: 'rgba(37, 99, 235, 0.1)',
                         borderWidth: 1,
@@ -344,6 +323,13 @@
                     },
                     scales: {
                         x: {
+                            type: 'time',
+                            time: {
+                                unit: 'day',
+                                displayFormats: {
+                                    day: 'EEE d MMM'
+                                }
+                            },
                             ticks: {
                                 maxTicksLimit: 20,
                                 maxRotation: 45
@@ -366,18 +352,17 @@
             const lastDate = allDates[allDates.length - 1];
             const cutoffDate = new Date(lastDate.getTime() - days * 24 * 60 * 60 * 1000);
             
-            const filteredLabels = [];
+            const filteredDates = [];
             const filteredData = [];
             
             for (let i = 0; i < allDates.length; i++) {
                 if (allDates[i] >= cutoffDate) {
-                    filteredLabels.push(allLabels[i]);
+                    filteredDates.push(allDates[i]);
                     filteredData.push(allData[i]);
                 }
             }
             
-            createChart(filteredLabels, filteredData);
-            document.getElementById('info').textContent = `${t('showingLast')} ${days} ${t('days')} ${filteredLabels[0]} ${t('to')} ${filteredLabels[filteredLabels.length - 1]}`;
+            createChart(filteredDates, filteredData);
         }
     </script>
 </body>
