@@ -34,6 +34,9 @@
         }
         button:hover { background: #0052a3; }
         button:disabled { background: #ccc; cursor: not-allowed; }
+        .locale-buttons { float: right; }
+        .locale-buttons button { padding: 2px 8px; font-size: 24px; background: transparent; color: #333; border: 1px solid #ccc; border-radius: 4px; }
+        .locale-buttons button.active { background: transparent; border-color: #0066cc; }
         #status { margin: 10px 0; color: #666; }
         .chart-container {
             background: white;
@@ -45,13 +48,17 @@
     </style>
 </head>
 <body>
-    <h1>KNMI Air Pressure (De Bilt)</h1>
+    <h1 id="title">KNMI Luchtdruk (De Bilt)</h1>
     
     <div class="controls">
-        <button id="lastDayBtn" onclick="filterRange(1)" disabled>Last Day</button>
-        <button id="lastWeekBtn" onclick="filterRange(7)" disabled>Last Week</button>
-        <button id="lastTwoWeeksBtn" onclick="filterRange(14)" disabled>Last 2 Weeks</button>
-        <button id="lastMonthBtn" onclick="filterRange(30)" disabled>Last Month</button>
+        <div class="locale-buttons">
+            <button id="enBtn" onclick="setLocale('en')">🇬🇧</button>
+            <button id="nlBtn" onclick="setLocale('nl')" class="active">🇳🇱</button>
+        </div>
+        <button id="lastDayBtn" onclick="filterRange(1)" disabled>Laatste dag</button>
+        <button id="lastWeekBtn" onclick="filterRange(7)" disabled>Laatste week</button>
+        <button id="lastTwoWeeksBtn" onclick="filterRange(14)" disabled>Laatste 2 weken</button>
+        <button id="lastMonthBtn" onclick="filterRange(30)" disabled>Laatste maand</button>
         <div id="status"></div>
         <div id="info"></div>
     </div>
@@ -65,6 +72,105 @@
         let allLabels = [];
         let allData = [];
         let allDates = [];
+        let currentLocale = 'nl';
+        let dateRangeInfo = '';
+        let loadedInfo = '';
+
+        const translations = {
+            en: {
+                title: 'KNMI Air Pressure (De Bilt)',
+                lastDay: 'Last Day',
+                lastWeek: 'Last Week',
+                lastTwoWeeks: 'Last 2 Weeks',
+                lastMonth: 'Last Month',
+                downloading: 'Downloading ZIP file...',
+                extracting: 'Extracting ZIP file...',
+                found: 'Found',
+                files: 'file(s):',
+                parsing: 'Parsing data...',
+                loaded: 'Loaded',
+                dataPoints: 'data points',
+                dateRange: 'Date range:',
+                to: 'to',
+                showingLast: 'Showing last',
+                days: 'day(s):',
+                directFailed: 'Direct download failed, trying CORS proxy...',
+                downloadFailed: 'Download failed',
+                error: 'Error:',
+                pressure: 'Air Pressure (hPa)'
+            },
+            nl: {
+                title: 'KNMI Luchtdruk (De Bilt)',
+                lastDay: 'Laatste dag',
+                lastWeek: 'Laatste week',
+                lastTwoWeeks: 'Laatste 2 weken',
+                lastMonth: 'Laatste maand',
+                downloading: 'ZIP bestand downloaden...',
+                extracting: 'ZIP bestand uitpakken...',
+                found: 'Gevonden',
+                files: 'bestand(en):',
+                parsing: 'Data verwerken...',
+                loaded: 'Geladen',
+                dataPoints: 'datapunten',
+                dateRange: 'Datumbereik:',
+                to: 'tot',
+                showingLast: 'Laatste',
+                days: 'dag(en):',
+                directFailed: 'Directe download mislukt, CORS proxy proberen...',
+                downloadFailed: 'Download mislukt',
+                error: 'Fout:',
+                pressure: 'Luchtdruk (hPa)'
+            }
+        };
+
+        function t(key) {
+            return translations[currentLocale][key];
+        }
+
+        function setLocale(locale) {
+            currentLocale = locale;
+            document.getElementById('enBtn').classList.toggle('active', locale === 'en');
+            document.getElementById('nlBtn').classList.toggle('active', locale === 'nl');
+            document.getElementById('title').textContent = t('title');
+            
+            document.getElementById('lastDayBtn').textContent = t('lastDay');
+            document.getElementById('lastWeekBtn').textContent = t('lastWeek');
+            document.getElementById('lastTwoWeeksBtn').textContent = t('lastTwoWeeks');
+            document.getElementById('lastMonthBtn').textContent = t('lastMonth');
+            
+            if (allDates.length > 0) {
+                regenerateLabels();
+                dateRangeInfo = `${t('dateRange')} ${allLabels[0]} ${t('to')} ${allLabels[allLabels.length - 1]}`;
+                loadedInfo = `${t('loaded')} ${allData.length} ${t('dataPoints')}`;
+                document.getElementById('info').textContent = dateRangeInfo;
+                document.getElementById('status').textContent = loadedInfo;
+                filterRange(14);
+            }
+        }
+
+        function regenerateLabels() {
+            const dayNamesEn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const monthNamesEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const dayNamesNl = ['Zo', 'Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za'];
+            const monthNamesNl = ['Jan', 'Feb', 'Mrt', 'Apr', 'Mei', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec'];
+            
+            allLabels = [];
+            for (const date of allDates) {
+                const hour = date.getHours();
+                const day = date.getDate();
+                let dateLabel;
+                if (currentLocale === 'nl') {
+                    const dayName = dayNamesNl[date.getDay()];
+                    const monthName = monthNamesNl[date.getMonth()];
+                    dateLabel = `${dayName} ${day} ${monthName} ${hour.toString().padStart(2, '0')}:00`;
+                } else {
+                    const dayName = dayNamesEn[date.getDay()];
+                    const monthName = monthNamesEn[date.getMonth()];
+                    dateLabel = `${dayName} ${day} ${monthName} ${hour.toString().padStart(2, '0')}:00`;
+                }
+                allLabels.push(dateLabel);
+            }
+        }
 
         window.addEventListener('DOMContentLoaded', loadData);
 
@@ -72,7 +178,7 @@
             const status = document.getElementById('status');
             const info = document.getElementById('info');
             
-            status.textContent = 'Downloading ZIP file...';
+            status.textContent = t('downloading');
             
             const url = 'https://cdn.knmi.nl/knmi/map/page/klimatologie/gegevens/uurgegevens/uurgeg_260_2021-2030.zip';
             
@@ -80,18 +186,18 @@
                 let response = await fetch(url);
                 
                 if (!response.ok) {
-                    status.textContent = 'Direct download failed, trying CORS proxy...';
+                    status.textContent = t('directFailed');
                     response = await fetch('https://corsproxy.io/?' + encodeURIComponent(url));
                 }
                 
-                if (!response.ok) throw new Error('Download failed');
+                if (!response.ok) throw new Error(t('downloadFailed'));
                 
-                status.textContent = 'Extracting ZIP file...';
+                status.textContent = t('extracting');
                 const arrayBuffer = await response.arrayBuffer();
                 const zip = await JSZip.loadAsync(arrayBuffer);
                 
                 const files = Object.keys(zip.files);
-                status.textContent = `Found ${files.length} file(s): ${files.join(', ')}`;
+                status.textContent = `${t('found')} ${files.length} ${t('files')} ${files.join(', ')}`;
                 
                 let dataText = '';
                 for (const filename of files) {
@@ -108,11 +214,13 @@
                     dataText = await file.async('string');
                 }
                 
-                status.textContent = 'Parsing data...';
+                status.textContent = t('parsing');
                 parseData(dataText);
                 
-                status.textContent = `Loaded ${allData.length} data points`;
-                info.textContent = `Date range: ${allLabels[0]} to ${allLabels[allLabels.length - 1]}`;
+                status.textContent = `${t('loaded')} ${allData.length} ${t('dataPoints')}`;
+                loadedInfo = `${t('loaded')} ${allData.length} ${t('dataPoints')}`;
+                dateRangeInfo = `${t('dateRange')} ${allLabels[0]} ${t('to')} ${allLabels[allLabels.length - 1]}`;
+                info.textContent = dateRangeInfo;
                 
                 filterRange(14);
                 document.getElementById('lastDayBtn').disabled = false;
@@ -121,7 +229,7 @@
                 document.getElementById('lastMonthBtn').disabled = false;
                 
             } catch (error) {
-                status.textContent = 'Error: ' + error.message;
+                status.textContent = t('error') + ' ' + error.message;
                 console.error(error);
             }
         }
@@ -130,6 +238,11 @@
             allData = [];
             allLabels = [];
             allDates = [];
+            
+            const dayNamesEn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const monthNamesEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const dayNamesNl = ['Zo', 'Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za'];
+            const monthNamesNl = ['Jan', 'Feb', 'Mrt', 'Apr', 'Mei', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec'];
             
             const lines = text.split('\n');
             
@@ -153,11 +266,16 @@
                         
                         const date = new Date(year, month - 1, day, hour);
                         
-                        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-                        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                        const dayName = dayNames[date.getDay()];
-                        const monthName = monthNames[date.getMonth()];
-                        const dateLabel = `${dayName} ${parseInt(day)} ${monthName} ${hour.toString().padStart(2, '0')}:00`;
+                        let dateLabel;
+                        if (currentLocale === 'nl') {
+                            const dayName = dayNamesNl[date.getDay()];
+                            const monthName = monthNamesNl[date.getMonth()];
+                            dateLabel = `${dayName} ${parseInt(day)} ${monthName} ${hour.toString().padStart(2, '0')}:00`;
+                        } else {
+                            const dayName = dayNamesEn[date.getDay()];
+                            const monthName = monthNamesEn[date.getMonth()];
+                            dateLabel = `${dayName} ${parseInt(day)} ${monthName} ${hour.toString().padStart(2, '0')}:00`;
+                        }
                         
                         const pressureRaw = parseFloat(parts[14]);
                         if (isNaN(pressureRaw) || pressureRaw < 9000 || pressureRaw > 11000) continue;
@@ -184,7 +302,7 @@
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Air Pressure (hPa)',
+                        label: t('pressure'),
                         data: data,
                         borderColor: 'rgb(37, 99, 235)',
                         backgroundColor: 'rgba(37, 99, 235, 0.1)',
@@ -234,7 +352,7 @@
                         y: {
                             title: {
                                 display: true,
-                                text: 'Pressure (hPa)'
+                                text: t('pressure')
                             }
                         }
                     }
@@ -259,7 +377,7 @@
             }
             
             createChart(filteredLabels, filteredData);
-            document.getElementById('info').textContent = `Showing last ${days} day(s): ${filteredLabels[0]} to ${filteredLabels[filteredLabels.length - 1]}`;
+            document.getElementById('info').textContent = `${t('showingLast')} ${days} ${t('days')} ${filteredLabels[0]} ${t('to')} ${filteredLabels[filteredLabels.length - 1]}`;
         }
     </script>
 </body>
