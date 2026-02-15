@@ -94,7 +94,8 @@
                 directFailed: 'Direct download failed, trying CORS proxy...',
                 downloadFailed: 'Download failed',
                 error: 'Error:',
-                pressure: 'Air Pressure (hPa)'
+                pressure: 'Air Pressure (hPa)',
+                dateFormat: 'EEE d MMM'
             },
             nl: {
                 title: 'KNMI Luchtdruk (De Bilt)',
@@ -116,7 +117,8 @@
                 directFailed: 'Directe download mislukt, CORS proxy proberen...',
                 downloadFailed: 'Download mislukt',
                 error: 'Fout:',
-                pressure: 'Luchtdruk (hPa)'
+                pressure: 'Luchtdruk (hPa)',
+                dateFormat: 'EEE d MMM'
             }
         };
 
@@ -325,14 +327,21 @@
                         x: {
                             type: 'time',
                             time: {
-                                unit: 'day',
-                                displayFormats: {
-                                    day: 'EEE d MMM'
-                                }
+                                unit: 'day'
                             },
                             ticks: {
                                 maxTicksLimit: 20,
-                                maxRotation: 45
+                                maxRotation: 45,
+                                callback: function(value, index, values) {
+                                    const date = new Date(value);
+                                    const dayNames = currentLocale === 'nl' 
+                                        ? ['Zo', 'Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za']
+                                        : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                                    const monthNames = currentLocale === 'nl'
+                                        ? ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec']
+                                        : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                    return dayNames[date.getDay()] + ' ' + date.getDate() + ' ' + monthNames[date.getMonth()];
+                                }
                             }
                         },
                         y: {
