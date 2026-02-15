@@ -38,7 +38,6 @@
         .locale-buttons { float: right; }
         .locale-buttons button { padding: 2px 8px; font-size: 20px; background: transparent; color: #333; border: 1px solid #ccc; border-radius: 4px; }
         .locale-buttons button.active { background: transparent; border-color: #0066cc; }
-        #status { margin: 10px 0; color: #666; }
         .chart-container {
             background: white;
             padding: 20px;
@@ -347,7 +346,7 @@
                             ticks: {
                                 maxTicksLimit: 20,
                                 maxRotation: 45,
-                                callback: function(value, index, values) {
+                                callback: function(value) {
                                     const date = new Date(value);
                                     const dayNames = currentLocale === 'nl' 
                                         ? ['Zo', 'Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za']
